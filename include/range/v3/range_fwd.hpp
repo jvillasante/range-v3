@@ -47,8 +47,6 @@ namespace ranges
 {
     inline namespace v3
     {
-        inline namespace CPOs {}
-
         /// \cond
         namespace _end_
         {

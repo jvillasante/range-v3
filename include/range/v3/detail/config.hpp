@@ -417,7 +417,7 @@ namespace ranges
 #endif  // __cpp_inline_variables
 #endif  // RANGES_CXX_INLINE_VARIABLES
 
-#if RANGES_CXX_INLINE_VARIABLES < RANGES_CXX_INLINE_VARIABLES_17
+#if RANGES_CXX_INLINE_VARIABLES < RANGES_CXX_INLINE_VARIABLES_17 && !defined(RANGES_DOXYGEN_INVOKED)
 #define RANGES_INLINE_VARIABLE(type, name)                          \
     inline namespace                                                \
     {                                                               \
@@ -427,6 +427,24 @@ namespace ranges
 #define RANGES_INLINE_VARIABLE(type, name) \
     inline constexpr type name{};
 #endif // RANGES_CXX_INLINE_VARIABLES
+
+#if defined(RANGES_DOXYGEN_INVOKED)
+#define RANGES_DEFINE_CPO(TYPE, NAME) RANGES_INLINE_VARIABLE(TYPE, NAME)
+#elif defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 6
+#define RANGES_DEFINE_CPO(TYPE, NAME) \
+    inline namespace NAME ## _cpo_ \
+    { \
+        RANGES_INLINE_VARIABLE(TYPE, NAME); \
+    } \
+    using namespace NAME ## _cpo_
+#else
+#define RANGES_DEFINE_CPO(TYPE, NAME) \
+    namespace NAME ## _cpo_ \
+    { \
+        RANGES_INLINE_VARIABLE(TYPE, NAME); \
+    } \
+    using namespace NAME ## _cpo_
+#endif
 
 #ifndef RANGES_CXX_DEDUCTION_GUIDES
 #if defined(__clang__) && defined(__apple_build_version__)
@@ -515,13 +533,13 @@ namespace ranges {
     }
 }
 
-#if !defined(RANGES_BROKEN_CPO_LOOKUP) && !defined(RANGES_DOXYGEN_INVOKED)
-#if defined(__clang__) // Workaround https://bugs.llvm.org/show_bug.cgi?id=37556
-#define RANGES_BROKEN_CPO_LOOKUP 1
-#elif defined(__GNUC__) && __GNUC__ < 6 // Workaround unknown GCC bug
-#define RANGES_BROKEN_CPO_LOOKUP 1
-#endif
-#endif
+// #if !defined(RANGES_BROKEN_CPO_LOOKUP) && !defined(RANGES_DOXYGEN_INVOKED)
+// #if defined(__clang__) // Workaround https://bugs.llvm.org/show_bug.cgi?id=37556
+// #define RANGES_BROKEN_CPO_LOOKUP 1
+// #elif defined(__GNUC__) && __GNUC__ < 6 // Workaround unknown GCC bug
+// #define RANGES_BROKEN_CPO_LOOKUP 1
+// #endif
+// #endif
 #ifndef RANGES_BROKEN_CPO_LOOKUP
 #define RANGES_BROKEN_CPO_LOOKUP 0
 #endif
