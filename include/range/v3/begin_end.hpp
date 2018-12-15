@@ -41,17 +41,17 @@ namespace ranges
             template<typename T>
             void begin(T &&) = delete;
             template<typename T>
-            void begin(std::initializer_list<T> &&) = delete;
+            void begin(std::initializer_list<T>) = delete;
 
             struct fn
             {
             private:
                 template<typename R>
                 using member_begin_t =
-                    detail::decay_t<decltype(static_cast<R (*)()>(nullptr)().begin())>;
+                    detail::decay_t<decltype(std::declval<R>().begin())>;
                 template<typename R>
                 using non_member_begin_t =
-                    detail::decay_t<decltype(begin(static_cast<R (*)()>(nullptr)()))>;
+                    detail::decay_t<decltype(begin(std::declval<R>()))>;
 
             public:
                 template<typename R, std::size_t N>
@@ -65,11 +65,12 @@ namespace ranges
 
                 // Prefer member if it returns Iterator.
                 template<typename R>
-                constexpr auto operator()(R &r) const
+                constexpr auto operator()(R &&r) const
                     // TODO: noexcept and guaranteed copy elision
                     noexcept(noexcept(static_cast<member_begin_t<R &>>(r.begin()))) ->
                     CPP_ret(member_begin_t<R &>)(
-                        requires Iterator<member_begin_t<R &>>)
+                        requires std::is_lvalue_reference<R>::value &&
+                            Iterator<member_begin_t<R &>>)
                 {
                     return r.begin();
                 }
@@ -112,7 +113,7 @@ namespace ranges
             };
 
             template<typename R>
-            using _t = decltype(fn{}(static_cast<R (*)()>(nullptr)()));
+            using _t = decltype(fn{}(std::declval<R>()));
         }
         /// \endcond
 
@@ -131,17 +132,17 @@ namespace ranges
             template<typename T>
             void end(T &&) = delete;
             template<typename T>
-            void end(std::initializer_list<T> &&) = delete;
+            void end(std::initializer_list<T>) = delete;
 
             struct fn
             {
             private:
                 template<typename R>
                 using member_end_t =
-                    detail::decay_t<decltype(static_cast<R (*)()>(nullptr)().end())>;
+                    detail::decay_t<decltype(std::declval<R>().end())>;
                 template<typename R>
                 using non_member_end_t =
-                    detail::decay_t<decltype(end(static_cast<R (*)()>(nullptr)()))>;
+                    detail::decay_t<decltype(end(std::declval<R>()))>;
 
             public:
                 template<typename R, std::size_t N>
@@ -155,10 +156,11 @@ namespace ranges
 
                 // Prefer member if it returns Sentinel.
                 template<typename R>
-                constexpr auto operator()(R &r) const
+                constexpr auto operator()(R &&r) const
                     noexcept(noexcept(static_cast<member_end_t<R &>>(r.end()))) ->
                     CPP_ret(member_end_t<R &>)(
-                        requires Sentinel<member_end_t<R &>, _begin_::_t<R &>>)
+                        requires std::is_lvalue_reference<R>::value &&
+                            Sentinel<member_end_t<R &>, _begin_::_t<R &>>)
                 {
                     return r.end();
                 }
@@ -201,7 +203,7 @@ namespace ranges
             };
 
             template<typename R>
-            using _t = decltype(fn{}(static_cast<R (*)()>(nullptr)()));
+            using _t = decltype(fn{}(std::declval<R>()));
         }
         /// \endcond
 
@@ -218,17 +220,10 @@ namespace ranges
             struct fn
             {
                 template<typename R>
-                constexpr _begin_::_t<R const &> operator()(R const &r) const
-                    noexcept(noexcept(ranges::begin(r)))
+                constexpr _begin_::_t<detail::as_const_t<R>> operator()(R &&r) const
+                    noexcept(noexcept(ranges::begin(detail::as_const((R &&) r))))
                 {
-                    return ranges::begin(r);
-                }
-
-                template<typename R>
-                constexpr _begin_::_t<R const> operator()(R const &&r) const
-                    noexcept(noexcept(ranges::begin((R const &&) r)))
-                {
-                    return ranges::begin((R const &&) r);
+                    return ranges::begin(detail::as_const((R &&) r));
                 }
             };
         }
@@ -246,16 +241,10 @@ namespace ranges
             struct fn
             {
                 template<typename R>
-                constexpr _end_::_t<R const &> operator()(R const &r) const
-                    noexcept(noexcept(ranges::end(r)))
+                constexpr _end_::_t<detail::as_const_t<R>> operator()(R &&r) const
+                    noexcept(noexcept(ranges::end(detail::as_const((R const &&) r))))
                 {
-                    return ranges::end(r);
-                }
-                template<typename R>
-                constexpr _end_::_t<R const> operator()(R const &&r) const
-                    noexcept(noexcept(ranges::end((R const &&) r)))
-                {
-                    return ranges::end((R const &&) r);
+                    return ranges::end(detail::as_const((R const &&) r));
                 }
             };
         }
@@ -272,18 +261,22 @@ namespace ranges
         {
             template<typename R>
             void rbegin(R &&) = delete;
+            // Non-standard, to keep unqualified rbegin(r) from finding std::rbegin
+            // and returning a std::reverse_iterator.
             template<typename T>
             void rbegin(std::initializer_list<T>) = delete;
+            template<typename T, std::size_t N>
+            void rbegin(T (&)[N]) = delete;
 
             struct fn
             {
             private:
                 template<typename R>
                 using member_rbegin_t =
-                    detail::decay_t<decltype(static_cast<R (*)()>(nullptr)().rbegin())>;
+                    detail::decay_t<decltype(std::declval<R>().rbegin())>;
                 template<typename R>
                 using non_member_rbegin_t =
-                    detail::decay_t<decltype(rbegin(static_cast<R (*)()>(nullptr)()))>;
+                    detail::decay_t<decltype(rbegin(std::declval<R>()))>;
 
                 template<typename R>
                 static constexpr auto impl_(R &&r, int)
@@ -343,7 +336,7 @@ namespace ranges
             };
 
             template<typename R>
-            using _t = decltype(fn{}(static_cast<R (*)()>(nullptr)()));
+            using _t = decltype(fn{}(std::declval<R>()));
         }
         /// \endcond
 
@@ -361,18 +354,22 @@ namespace ranges
         {
             template<typename R>
             void rend(R &&) = delete;
+            // Non-standard, to keep unqualified rend(r) from finding std::rend
+            // and returning a std::reverse_iterator.
             template<typename T>
             void rend(std::initializer_list<T>) = delete;
+            template<typename T, std::size_t N>
+            void rend(T (&)[N]) = delete;
 
             struct fn
             {
             private:
                 template<typename R>
                 using member_rend_t =
-                    detail::decay_t<decltype(static_cast<R (*)()>(nullptr)().rend())>;
+                    detail::decay_t<decltype(std::declval<R>().rend())>;
                 template<typename R>
                 using non_member_rend_t =
-                    detail::decay_t<decltype(rend(static_cast<R (*)()>(nullptr)()))>;
+                    detail::decay_t<decltype(rend(std::declval<R>()))>;
 
                 template<typename R>
                 static constexpr auto impl_(R &&r, int)
@@ -432,7 +429,7 @@ namespace ranges
             };
 
             template<typename R>
-            using _t = decltype(fn{}(static_cast<R (*)()>(nullptr)()));
+            using _t = decltype(fn{}(std::declval<R>()));
         }
         /// \endcond
 

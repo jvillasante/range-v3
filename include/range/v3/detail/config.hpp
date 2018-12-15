@@ -539,4 +539,12 @@ namespace ranges {
 #define RANGES_BROKEN_CPO_LOOKUP 0
 #endif
 
+#ifndef RANGES_NODISCARD
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard)
+#define RANGES_NODISCARD [[nodiscard]]
+#else
+#define RANGES_NODISCARD
+#endif
+#endif
+
 #endif
